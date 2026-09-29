@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NETRA</title>
+<link href="vendor/fonts.css" rel="stylesheet">
+<link href="assets/netra.css" rel="stylesheet">
+</head>
+<body>
+
+<!--
+  One shell, every screen. The design puts the same rail, top bar and footer around
+  each view, and it is a workstation: an analyst moves between the queue, a case and
+  the map dozens of times an hour, so the chrome must not reload.
+
+  The rail is role-aware: it is rendered from /api/auth/me and hides what a role may
+  not do. That is a courtesy, not a control -- the server checks every request.
+-->
+<div class="shell">
+
+  <aside class="rail" id="rail">
+    <div class="brand">
+      <div class="mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 20h18"/><path d="M6 20V10"/><path d="M12 20V4"/><path d="M18 20v-7"/>
+        </svg>
+      </div>
+      <div>
+        <div class="wordmark">NETRA</div>
+        <div class="tagline">Risk analysis</div>
+      </div>
+    </div>
+    <nav id="nav"></nav>
+    <div class="who" id="who"></div>
+  </aside>
+
+  <div class="main">
+    <header class="top">
+      <div>
+        <h1 id="title">…</h1>
+        <div class="answer" id="answer"></div>
+      </div>
+      <div class="controls" id="controls"></div>
+    </header>
+
+    <main class="content" id="view">
+      <div class="loading"><div class="spinner"></div>
+        <div><b>Loading</b><span class="muted small">reading state from this machine</span></div>
+      </div>
+    </main>
+
+    <div class="health" id="health" hidden></div>
+    <footer class="foot" id="foot"></footer>
+  </div>
+</div>
+
+<div class="tip" id="tip"></div>
+<div class="toast" id="toast"></div>
+
+<script src="vendor/chart.umd.min.js"></script>
+<script src="vendor/vis-network.min.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>

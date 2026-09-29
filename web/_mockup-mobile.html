@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<title>NETRA — mobile companion (mockup)</title>
+<link href="vendor/fonts.css" rel="stylesheet">
+<style>
+  /* A mockup of the mobile companion, rendered with the workstation's own design
+     tokens and the capture's real numbers. It is a design artefact for the deck:
+     the phone frame and the layout are drawn, the data is what the engine
+     actually produced (NTR-9501 at 99, 50 groups raised, and so on). */
+  :root {
+    --surface: #0F1A2E; --bg: #070D18; --line: #1E2C44; --ink: #E8EEF8;
+    --ink-2: #9FB0C9; --ink-3: #6C7C96; --brand: #4C8DFF; --brand-2: #6BA4FF;
+    --crit: #FF5A5F; --crit-bg: #3A1417; --high: #FFAE4C; --high-bg: #38260F;
+    --med: #FFD84C; --med-bg: #332C0D; --safe: #35D07F;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #05090F; font-family: "Fira Sans", system-ui, sans-serif;
+    color: var(--ink); padding: 34px; display: flex; gap: 34px; align-items: flex-start;
+  }
+
+  /* ---- phone shell ---- */
+  .phone {
+    width: 396px; height: 812px; border-radius: 44px; background: #0B1220;
+    border: 10px solid #1B2436; box-shadow: 0 26px 60px rgba(0,0,0,.65);
+    padding: 14px 12px 10px; display: flex; flex-direction: column; position: relative;
+  }
+  .notch {
+    position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+    width: 108px; height: 20px; background: #1B2436; border-radius: 12px;
+  }
+  .status {
+    display: flex; justify-content: space-between; font-size: 11px; color: var(--ink-2);
+    padding: 6px 14px 10px; letter-spacing: .04em;
+  }
+  .appbar {
+    display: flex; align-items: center; gap: 9px; padding: 6px 8px 12px;
+  }
+  .mark {
+    width: 26px; height: 26px; border-radius: 8px;
+    background: linear-gradient(135deg, var(--brand), var(--brand-2));
+    display: grid; place-items: center; font-weight: 800; font-size: 12px; color: #04101F;
+  }
+  .appbar .name { font-weight: 700; font-size: 14px; letter-spacing: .06em; }
+  .appbar .sub { font-size: 10.5px; color: var(--ink-3); }
+  .pill {
+    margin-left: auto; font-size: 9.5px; font-weight: 700; color: var(--safe);
+    border: 1px solid var(--safe); border-radius: 99px; padding: 3px 8px;
+  }
+
+  .answer {
+    font-size: 12.5px; line-height: 1.45; color: var(--ink-2);
+    background: #0C1526; border: 1px solid var(--line); border-radius: 12px;
+    padding: 10px 12px; margin: 0 2px 12px;
+  }
+  .answer b { color: var(--ink); }
+
+  .kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0 2px 12px; }
+  .kpi { background: #0C1526; border: 1px solid var(--line); border-radius: 12px; padding: 9px 11px; }
+  .kpi .v { font-size: 20px; font-weight: 800; letter-spacing: -.02em; }
+  .kpi .l { font-size: 9.5px; color: var(--ink-3); text-transform: uppercase; letter-spacing: .07em; margin-top: 2px; }
+
+  .sect { font-size: 9.5px; text-transform: uppercase; letter-spacing: .09em;
+          color: var(--ink-3); margin: 4px 4px 7px; }
+
+  .list { display: flex; flex-direction: column; gap: 7px; overflow: hidden; flex: 1; }
+  .row {
+    display: flex; align-items: center; gap: 9px; background: #0C1526;
+    border: 1px solid var(--line); border-radius: 12px; padding: 9px 11px;
+  }
+  .row .num { font-size: 15px; font-weight: 800; width: 30px; }
+  .row .id { font-size: 11.5px; font-family: "Fira Mono", monospace; color: var(--ink); }
+  .row .why { font-size: 10px; color: var(--ink-3); margin-top: 2px; }
+  .chip {
+    display: inline-block; font-size: 9px; font-weight: 700; border-radius: 99px;
+    padding: 2px 7px; margin-right: 4px; border: 1px solid currentColor;
+  }
+  .crit { color: var(--crit); } .high { color: var(--high); } .med { color: var(--med); }
+  .tchip { color: var(--brand-2); }
+  .value { margin-left: auto; text-align: right; }
+  .value .v { font-size: 11.5px; font-weight: 700; }
+  .value .c { font-size: 9.5px; color: var(--ink-3); }
+
+  .tabbar {
+    display: flex; justify-content: space-around; border-top: 1px solid var(--line);
+    padding: 9px 4px 4px; margin-top: 8px;
+  }
+  .tabbar div { font-size: 9.5px; color: var(--ink-3); text-align: center; }
+  .tabbar div.on { color: var(--brand-2); font-weight: 700; }
+  .tabbar .dot { width: 16px; height: 16px; border-radius: 5px; background: currentColor;
+                 opacity: .28; margin: 0 auto 4px; }
+  .tabbar div.on .dot { opacity: .9; }
+
+  /* ---- annotation panel beside the phone ---- */
+  .notes { width: 430px; }
+  .notes h3 { font-size: 15px; margin-bottom: 10px; }
+  .notes p { font-size: 12px; line-height: 1.6; color: var(--ink-2); margin-bottom: 9px; }
+  .notes ul { margin: 0 0 12px 16px; font-size: 12px; line-height: 1.7; color: var(--ink-2); }
+  .notes b { color: var(--ink); }
+  .caption { font-size: 10.5px; color: var(--ink-3); margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<div class="phone">
+  <div class="notch"></div>
+  <div class="status"><span>09:41</span><span>NETRA · offline</span><span>82%</span></div>
+
+  <div class="appbar">
+    <div class="mark">N</div>
+    <div>
+      <div class="name">NETRA</div>
+      <div class="sub">Operation review</div>
+    </div>
+    <div class="pill">OFFLINE</div>
+  </div>
+
+  <div class="answer">
+    <b>50 wallet groups</b> are raised for review in this capture; they carried
+    <b>17% of all value moved</b>. 3 rose in priority since the last batch.
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><div class="v">50</div><div class="l">Leads to review</div></div>
+    <div class="kpi"><div class="v">533</div><div class="l">Groups examined</div></div>
+  </div>
+
+  <div class="sect">Priority queue</div>
+  <div class="list">
+    <div class="row">
+      <div class="num crit">99</div>
+      <div><div class="id">NTR-9501</div>
+        <div class="why">Multi-country control</div></div>
+      <div class="value"><div class="v">635 BTC</div><div class="c">0.989 max</div></div>
+    </div>
+    <div class="row">
+      <div class="num crit">99</div>
+      <div><div class="id">NTR-5182</div>
+        <div class="why">Multi-country control</div></div>
+      <div class="value"><div class="v">723 BTC</div><div class="c">0.989</div></div>
+    </div>
+    <div class="row">
+      <div class="num crit">99</div>
+      <div><div class="id">NTR-4069</div>
+        <div class="why"><span class="chip tchip">mixer</span>touched a mixing round</div></div>
+      <div class="value"><div class="v">563 BTC</div><div class="c">0.987</div></div>
+    </div>
+    <div class="row">
+      <div class="num high">98</div>
+      <div><div class="id">NTR-7953</div>
+        <div class="why"><span class="chip tchip">exchange</span>cash-out landmark</div></div>
+      <div class="value"><div class="v">828 BTC</div><div class="c">0.979</div></div>
+    </div>
+    <div class="row">
+      <div class="num high">97</div>
+      <div><div class="id">NTR-3309</div>
+        <div class="why"><span class="chip tchip">exchange</span>cash-out landmark</div></div>
+      <div class="value"><div class="v">737 BTC</div><div class="c">0.976</div></div>
+    </div>
+  </div>
+
+  <div class="tabbar">
+    <div class="on"><div class="dot"></div>Queue</div>
+    <div><div class="dot"></div>Map</div>
+    <div><div class="dot"></div>Cases</div>
+    <div><div class="dot"></div>Reports</div>
+  </div>
+</div>
+
+<div class="notes">
+  <h3>Mobile companion — the reviewer's view</h3>
+  <p>Field officers and duty supervisors do not sit at the workstation. This is the
+     same analysis on a phone: the one-sentence answer, the two numbers that matter,
+     and the priority queue — ranked by <b>risk</b>, ties broken by the model's own
+     <b>confidence</b>, never by the anomaly score.</p>
+  <ul>
+    <li><b>Same numbers as the desk.</b> Served from the same local API; no separate
+        pipeline, no second source of truth.</li>
+    <li><b>Every row says what it is:</b> "multi-country control", "touched a mixing
+        round", "cash-out landmark" — a typology, not a mystery score.</li>
+    <li><b>Offline by construction.</b> The phone talks to the workstation on the
+        local network; the workstation talks to nothing.</li>
+  </ul>
+  <p class="caption">Numbers shown are produced by the running engine on the
+     demonstration capture. Layout is a design mockup for the deck.</p>
+</div>
+
+</body>
+</html>

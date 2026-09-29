@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NETRA — sign in</title>
+<link href="vendor/fonts.css" rel="stylesheet">
+<link href="assets/netra.css" rel="stylesheet">
+</head>
+<body>
+
+<!--
+  The only page reachable without a session, and the only page with no navigation
+  and no data. Two things it must not do: reveal whether a username exists, and
+  render anything a walker-by should not read. "Authorised personnel only ·
+  FOR OFFICIAL USE ONLY" is not decoration -- it is the classification of every
+  screen behind it.
+-->
+<div class="signin">
+
+  <section class="pitch">
+    <div class="brand" style="display:flex;align-items:center;gap:12px;margin-bottom:34px">
+      <div class="mark" style="width:40px;height:40px;border-radius:12px;
+           background:linear-gradient(135deg,var(--brand),var(--brand-2));
+           display:grid;place-items:center;color:#fff">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 20h18"/><path d="M6 20V10"/><path d="M12 20V4"/><path d="M18 20v-7"/>
+        </svg>
+      </div>
+      <div>
+        <div style="font-size:22px;font-weight:700;letter-spacing:.05em;line-height:1"
+             id="wordmark">NETRA</div>
+        <div class="tagline" id="tagline">Network-Enhanced Transaction Risk Analysis</div>
+      </div>
+    </div>
+
+    <h1>An offline workstation for financial-intelligence and cybercrime teams.</h1>
+    <p class="lede">
+      Bitcoin traffic and chain data are fused on this host. Nothing is sent
+      anywhere — not to a vendor, not to a model service, not to a font server.
+    </p>
+
+    <div class="pillars">
+      <div class="pillar">
+        <div class="pi">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 21h16"/></svg>
+        </div>
+        <div><b>Offline by design</b>
+          <span>There is no outbound connection in this application, and CI fails the
+            build if one is ever added.</span></div>
+      </div>
+      <div class="pillar">
+        <div class="pi">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20v-3"/></svg>
+        </div>
+        <div><b>Explainable</b>
+          <span>Every priority is the exact sum of the factors behind it, and the parts
+            are shown. An analyst can defend a lead; a reviewer can check it.</span></div>
+      </div>
+      <div class="pillar">
+        <div class="pi">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 11l3 3L22 4"/>
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        </div>
+        <div><b>Audited</b>
+          <span>Every view, decision and export is recorded with the capture hash and the
+            model version that produced it. The log cannot be edited.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="form">
+    <h2 style="font-size:20px;margin-bottom:6px">Sign in</h2>
+    <p class="muted small" style="margin-bottom:22px">
+      Authorised personnel only · FOR OFFICIAL USE ONLY
+    </p>
+
+    <div id="reason" class="notice warn" hidden></div>
+
+    <form id="signinForm" autocomplete="off">
+      <div class="field">
+        <label for="username">Username</label>
+        <input id="username" name="username" autocomplete="username" autofocus required>
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" required>
+      </div>
+      <button class="btn primary" id="submit" type="submit" style="width:100%;justify-content:center">
+        Sign in
+      </button>
+    </form>
+
+    <div style="margin-top:20px">
+      <button class="btn" id="resetToggle" type="button" style="width:100%;justify-content:center">
+        Redeem an administrator-issued reset token
+      </button>
+
+      <!-- An air-gapped host has no email, so a reset cannot be a link. An
+           administrator issues a single-use token out of band and the holder
+           redeems it here. Both halves are audited. -->
+      <form id="resetForm" hidden style="margin-top:14px">
+        <div class="field">
+          <label for="token">Reset token</label>
+          <input id="token" autocomplete="off" required>
+        </div>
+        <div class="field">
+          <label for="newPassword">New password (at least 12 characters)</label>
+          <input id="newPassword" type="password" autocomplete="new-password" minlength="12" required>
+        </div>
+        <button class="btn primary" type="submit" style="width:100%;justify-content:center">
+          Set the new password
+        </button>
+      </form>
+    </div>
+
+    <div class="meta">
+      <span class="mono" id="build">build —</span>
+      <span id="themeNote" class="muted"></span>
+    </div>
+  </section>
+</div>
+
+<script src="assets/sign-in.js"></script>
+</body>
+</html>
