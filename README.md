@@ -1,137 +1,479 @@
-# NETRA — final submission
+# NETRA
 
-**Network-Enhanced Transaction Risk Analysis**
-An offline workstation for financial-intelligence and cybercrime teams.
-Nothing leaves the machine.
+Network-Enhanced Transaction Risk Analysis
 
-Team Vortex · SIH 2026 · PS SIH26146 · NTRO
+Team Vortex · SIH 2026
 
----
+NETRA is an offline, evidence-first workstation for financial intelligence and cybercrime investigation teams. It ingests blockchain transaction data, resolves wallet and entity identities, scores suspicious activity, and presents ranked investigative leads with explainable evidence that can be reviewed by an analyst without leaving the machine.
 
-## What this folder is
-
-The product build. It is **authored from scratch** — the previous prototype is kept
-outside this folder and used only as a reference for algorithms, thresholds and the
-lessons it paid for. Nothing was copied in.
-
-| Path | What lives there |
-|---|---|
-| `docs/NETRA_UI_Design.pdf` | **The design authority.** 40 pages, every screen, light and dark, plus the states page. |
-| `netra/` | The product package: data → identify → correlate → features → models → state → operations → work → report → api |
-| `web/` | The interface: static HTML/CSS/JS, no build step, with the vendored libraries and 42 font files |
-| `schemas/netra.schema.json` | **The frozen payload contract**, checked on the payload as served |
-| `tests/` | 80 pytest checks, the contract validator, and a 75-check endpoint smoke test |
-| `tools/` | The acceptance path (`acceptance.py`) and the foreign-shape harness (`foreign_shape.py`) |
-| `data/ models/ out/ uploads/ wheels/` | Generated and runtime state. Nothing here is source. |
-
-## Where the build stands
-
-| Layer | State |
-|---|---|
-| `netra/config.py` | **done** — every path, version and policy constant, environment-overridable |
-| `netra/data/` | **done** — four readers, ~90 column aliases, quality gate, satoshi + timezone detection, all typologies generated |
-| `netra/identify/`, `netra/correlate/` | **done** — `NTR-####` / `IP-####` identity, co-spend clustering, CoinJoin exclusion, flow vs control edges |
-| `netra/features/` | **done** — 33 features including both campaign detectors (poisoning, pool sweeps) |
-| `netra/models/` | **trained from scratch** — calibrated forest, IsolationForest, attribution, drift reference, scorecard measured |
-| `netra/state/` | **done** — analysis store + the product tables (users, sessions, cases, dispositions, canaries, model registry, runs) |
-| `netra/operations/` | **done** — windowed replay, contract payload, monitoring events, windows and history |
-| `netra/work/` | **done** — the service layer over the product tables |
-| `netra/api/` | **done** — 44 routes, scrypt credentials, server-side sessions, CSRF, role capabilities, contract validation on serve |
-| `web/` | **done** — one shell, 16 screens, the dense operations map, A4 reports |
-| `netra/report/` | **done** — capture, leads, case dossier and campaign sheets with engine, model version and evidence hash |
-| `tests/` | **done** — contract, ingest, auth, state, and the endpoint smoke test |
-
-## Run it
-
-```bash
-python tasks.py admin          # create the first administrator (once per machine)
-python tasks.py serve 8000     # or ./run.sh, or run.bat on Windows
-```
-
-The administrator's password is typed at that prompt and stored as a scrypt
-credential -- it is not in this repository. An administrator issues a single-use
-reset token from Administration for anyone who forgets theirs; there is no email
-on an air-gapped host, so the token is handed over out of band.
-
-On a fresh checkout, `./run.sh` (or `run.bat`) does everything else by itself:
-generate the capture, train the models, replay the windows, then serve. It prepares
-only what is missing, so a second run needs no computation and no network.
-
-```bash
-python tasks.py gen            # synthetic capture with planted typologies
-python tasks.py train          # train and measure the models, write artifacts
-python tasks.py replay         # windowed pipeline -> out/netra.sqlite
-python tasks.py accept FILE    # read a real capture and report what was made of it
-python tasks.py retrain        # train a challenger from the analysts' dispositions
-python tasks.py offline        # prove no shipped file references the network
-python tasks.py smoke          # generate -> train -> replay -> contract -> every endpoint
-python tasks.py test           # the pytest suite
-```
-
-## The acceptance path: your dataset, not ours
-
-A demonstration that only works on the dataset it shipped with proves nothing. The
-question an examiner actually asks is *"take my file — the one my tool exported —
-and show me what you make of it."* So that is a command:
-
-```bash
-python tasks.py accept uploads/your_capture.csv            # read and report
-python tasks.py accept uploads/your_capture.csv --analyse  # then analyse it
-```
-
-It prints what the workstation did to the file, in the order it does it:
-
-1. **READ** — which of your columns became which canonical field, and which were
-   left alone
-2. **GATE** — how many rows were usable, and a reason for every row set aside
-3. **UNITS** — whether amounts arrived in satoshis and were converted, and which
-   timezone was assumed when the file did not say
-4. **ABSENT** — every field the analysis uses that your file did not contain, and
-   what that costs (`no source network endpoint: the wallet groups in this capture
-   have no country or hosting operator attributed to them`)
-5. **LEADS** — optionally, the pipeline run on your file: batch by batch, then the
-   ranked leads with their band, typology, strongest driver and a check that the
-   attribution reconciles to the displayed score
-
-The header names do not have to match anything. `Block Time`, `Transaction Hash`,
-`Sender`, `Recipient`, `Value` are understood; so are `from_address`, `txhash`,
-`inputs`, `amount`, `country` and about eighty more spellings. Amounts in satoshis
-are detected and divided by 100,000,000 — with the conversion stated, because a
-capture read in the wrong unit describes an economy a hundred million times too
-large. Rows that cannot be read are counted with their reason, never dropped in
-silence: in an investigation a missing row is a missing fact.
-
-`tools/foreign_shape.py` builds a deliberately awkward file from a known capture
-(different headers, satoshis, no timezone, several addresses in one cell, unreadable
-rows, no network columns) so the reader can be tested against a file whose contents
-are known. `tests/test_ingest.py` is the same idea, faster.
-
-## What is verified, and how
-
-| Claim | How it is checked |
-|---|---|
-| The payload honours its contract | `schemas/netra.schema.json` + `tests/validate_contract.py`, enforced in `payload_for()` and on `/api/results`; a payload that breaks it raises instead of being served |
-| Nothing reaches the network | `python tasks.py offline` reads every shipped file: no external URL in our own code, no fetch-shaped URL in the vendored libraries, every referenced asset present |
-| A clean checkout works end to end | `python tasks.py smoke` — generate, train, replay, validate the contract, then 75 checks across every HTTP endpoint |
-| Authentication is a control, not a decoration | `tests/test_auth.py` — unauthenticated pages redirect, API paths answer 401, a write without a CSRF header is refused, a role without a capability is refused, repeated failures lock the account, a reset token works once and expires |
-| The audit log cannot be rewritten | A trigger in the schema raises on `UPDATE` and `DELETE`; `tests/test_state.py` proves it |
-| A replay does not destroy records | The analysis history is cleared table by table; accounts, cases and the audit log survive (`tests/test_state.py`) |
-| Identity is stable and content-derived | 4,000 anchors produce 4,000 distinct `NTR-` ids, escalating 4 → 6 → 8 digits on collision; the same capture replayed produces the same ids |
-| Analyst decisions can improve the model, and cannot promote it | `python tasks.py retrain` trains a challenger from dispositions (refusing under 8 labels), writes it beside the champion and registers it as a challenger; `tests/test_feedback.py` proves it does not touch the live artifact and that a confirmed outcome outranks a later judgement |
-| The model's numbers are measured, not asserted | `netra/models/train.py` writes `metrics.json`; the scorecard screen and report read it, including the honest part — a linear model over the same features reaches a comparable score, so most of the signal is in the feature engineering |
-
-## Two constraints that shape everything
-
-**No network access, ever.** No CDN, no remote fonts, no map tiles, no telemetry,
-no package index at install time. Every asset is in this folder. The build is
-checked rather than trusted: `python tasks.py offline` fails if any shipped file
-references an external host.
-
-**A lead is not a finding of guilt.** Every score ranks a group for review, and the
-attribution reconciles exactly to the number displayed beside it. That statement
-appears on every screen, every report and every export.
+This repository contains the complete product build: the ingestion pipeline, identity and graph logic, model training, review workflow, authentication and authorization, reporting layer, and the static web interface.
 
 ---
 
-*The design PDF is the authority for the interface. `NETRA_PRODUCT_SPEC.md`, one
-level up, is the specification this build implements.*
+## 1. Project purpose
+
+The problem is not simply "detect anomalies." The harder problem is this:
+
+- transaction files arrive in messy, inconsistent formats
+- wallet addresses are reused, split, merged, or represented in multiple aliases
+- investigators must work with incomplete data and uncertain labels
+- outputs must be explainable, auditable, and safe for sensitive environments
+- the environment may be air-gapped or restricted, with no access to external APIs or cloud services
+
+NETRA addresses this by combining a structured ingestion pipeline, graph-based entity resolution, risk modelling, and a review-ready interface designed for an analyst workstation rather than a generic dashboard.
+
+The product is intentionally built to be:
+
+- offline-first
+- explainable
+- deterministic where possible
+- auditable
+- usable on a real investigation workstation without network connectivity
+
+---
+
+## 2. What the product does
+
+NETRA helps teams answer three questions:
+
+1. What transaction data did we ingest, and what did we infer from it?
+2. Which entities or wallet clusters look suspicious and why?
+3. Which cases or leads should a reviewer inspect next, based on risk, attribution, and context?
+
+At a high level, the workflow is:
+
+- ingest a transaction capture from CSV or similar source data
+- normalize and validate fields
+- detect malformed or missing information
+- resolve clusters, flow relationships, and network structure
+- compute behavioural and graph-based features
+- score risk and anomaly using trained models
+- explain the strongest drivers behind each lead
+- store findings, events, and audit history for later review
+- expose a web application and printable reports to analysts
+
+---
+
+## 3. Architecture overview
+
+The codebase is organized as a modular Python product rather than a single script.
+
+| Area | Purpose |
+|---|---|
+| netra/ | Core product code: ingestion, identity, features, models, API, state, reporting |
+| web/ | Static UI shell, HTML, CSS, JavaScript, and bundled assets |
+| schemas/ | Payload contract and validation schema |
+| tests/ | Regression tests, authentication tests, state checks, contract validation |
+| data/ | Generated and sample dataset inputs |
+| models/ | Trained model artifacts and metrics |
+| out/ | Runtime state, SQLite history, and analysis outputs |
+| uploads/ | User-uploaded captures for review or analysis |
+| tools/ | Acceptance, validation, and data-shape utilities |
+| docs/ | Project design, references, and supporting documentation |
+
+### Main runtime layers
+
+- Data layer: ingestion, normalization, quality gates, unit conversion
+- Identity layer: entity clustering, wallet grouping, address resolution
+- Correlation layer: relationship and flow analysis across windows
+- Feature layer: risk and anomaly features built from graph and transaction attributes
+- Model layer: trained risk models, anomaly detectors, attribution, metrics, drift tracking
+- State layer: SQLite-backed store for users, sessions, windows, analysis, and audit records
+- API layer: FastAPI endpoints protecting the product and serving data to the UI
+- UI layer: static web application for investigation, review, and reporting
+
+---
+
+## 4. Repository layout
+
+```text
+.
+├── README.md
+├── requirements.txt
+├── Dockerfile
+├── docker-compose.yml
+├── run.sh
+├── run.bat
+├── Makefile
+├── tasks.py
+├── data/
+│   ├── ground_truth_addresses.csv
+│   ├── ground_truth_entities.csv
+│   ├── ground_truth_transactions.csv
+│   ├── transactions.csv
+│   └── windows/
+├── docs/
+├── models/
+│   ├── anomaly.joblib
+│   ├── risk.joblib
+│   ├── feature_columns.json
+│   ├── metrics.json
+│   └── ENVIRONMENT.txt
+├── netra/
+│   ├── api/
+│   ├── correlate/
+│   ├── data/
+│   ├── features/
+│   ├── identify/
+│   ├── models/
+│   ├── operations/
+│   ├── report/
+│   ├── state/
+│   └── work/
+├── schemas/
+│   └── netra.schema.json
+├── tests/
+│   ├── conftest.py
+│   ├── test_auth.py
+│   ├── test_contract.py
+│   ├── test_feedback.py
+│   ├── test_ingest.py
+│   ├── test_state.py
+│   └── validate_contract.py
+├── tools/
+│   ├── acceptance.py
+│   └── foreign_shape.py
+├── uploads/
+├── web/
+├── wheels/
+└── out/
+```
+
+---
+
+## 5. Core design principles
+
+### Offline by design
+
+NETRA is designed to work on an air-gapped workstation. It does not depend on remote services during normal operation. The code is checked for external references, and the project includes a dedicated offline validation workflow.
+
+### Explainability before score
+
+This project is not a black-box classifier. Every flagged lead is paired with supporting evidence, explanations, and a transparent confidence model. The tool is intended to help a human analyst understand why an entity or wallet cluster was scored highly.
+
+### Audited state
+
+The system keeps structured state for:
+
+- users and authentication state
+- sessions and access control
+- windows and batch analysis history
+- cases and review outcomes
+- model versions and scoring provenance
+- audit logs for security-sensitive actions
+
+### Review-driven model improvement
+
+Analyst decisions can be used to train challenger models without silently replacing the live champion model. This keeps the product aligned with the principle that investigative judgments remain human-controlled.
+
+---
+
+## 6. Technical stack
+
+The project is built using Python with the main runtime libraries pinned in requirements.txt.
+
+### Core libraries
+
+- Python 3.10
+- pandas
+- numpy
+- scipy
+- scikit-learn
+- networkx
+- joblib
+- FastAPI
+- uvicorn
+- jsonschema
+- pytest
+
+### Web stack
+
+The UI is a static, no-build frontend served alongside the API by FastAPI. This keeps deployment simple for an offline environment.
+
+---
+
+## 7. Data and modelling flow
+
+### 7.1 Ingestion
+
+The ingestion layer reads raw transaction capture files, normalizes field names, handles missing values, infers amounts and timestamps, and classifies the quality of each row. This is intentionally conservative: rows that cannot be interpreted are recorded with a reason instead of silently disappearing.
+
+Key behaviour:
+
+- supports multiple header aliases
+- detects satoshi vs BTC values
+- handles timezone ambiguity
+- reports absent fields and their cost to analysis
+- preserves an honest record of what was transformed
+
+### 7.2 Entity and graph analysis
+
+The system identifies entities and wallet clusters, then builds relationships for:
+
+- connected wallet groups
+- transfer flows
+- co-spend and shared-entity patterns
+- suspicious cycles, bursts, or campaign-style propagation
+
+This creates the structure over which features and suspicious behaviour are derived.
+
+### 7.3 Feature generation
+
+Feature engineering combines transactional, graph, and behavioural signals. The project calculates risk and anomaly features from the entity history and wallet interactions rather than relying on a single raw metric.
+
+### 7.4 Model training
+
+The model layer trains and validates:
+
+- a risk model for lead scoring
+- an anomaly detector for outlier-like behaviour
+- explainers and attribution logic
+- metrics and drift references used for review and comparison
+
+Model artifacts are stored in models/ and are versioned with environment metadata.
+
+### 7.5 Reporting
+
+The product emits investigation-ready outputs such as:
+
+- lead lists and score bands
+- entity-level explanations
+- evidence routing and attribution
+- printable report documents
+- a contract-validated payload for the UI and API
+
+---
+
+## 8. Runtime entry points
+
+The main command runner is tasks.py. It provides a single cross-platform interface for all common workflows.
+
+### Quick start
+
+```bash
+python tasks.py admin
+python tasks.py serve 8000
+```
+
+### One-command startup
+
+Linux/macOS:
+
+```bash
+./run.sh
+```
+
+Windows:
+
+```bat
+run.bat
+```
+
+The startup scripts create missing directories, prepare dependencies when needed, generate required data if missing, run the replay pipeline, and serve the application.
+
+---
+
+## 9. Tasks and commands
+
+These are the primary repository commands:
+
+```bash
+python tasks.py gen         # generate synthetic capture data
+python tasks.py train       # train models and write metrics/artifacts
+python tasks.py replay      # run windowed pipeline into state/output store
+python tasks.py payload     # build a schema-validated payload
+python tasks.py drift       # compare batches with the training distribution
+python tasks.py admin       # create the first administrator account
+python tasks.py accept FILE # read a real capture and report what was inferred
+python tasks.py retrain     # train a challenger model from analyst labels
+python tasks.py serve 8000  # start the API + web app on a local port
+python tasks.py smoke       # fast end-to-end validation run
+python tasks.py offline     # validate the project is offline-safe
+python tasks.py test        # run the full pytest suite
+python tasks.py clean       # remove generated runtime state
+```
+
+### The acceptance workflow
+
+The project is intentionally built around real-world ingestion quality checks. Instead of assuming the bundled demo data is sufficient, the acceptance path reads a user-supplied file and reports:
+
+1. which fields were mapped
+2. what rows were excluded and why
+3. whether units were detected and converted
+4. what expected fields were missing
+5. what leads or scores were produced from the file
+
+This is the path a real analyst or evaluator would use when testing their own capture.
+
+```bash
+python tasks.py accept uploads/your_capture.csv
+python tasks.py accept uploads/your_capture.csv --analyse
+```
+
+---
+
+## 10. Setup and environment
+
+### Prerequisites
+
+- Python 3.10
+- pip
+- access to a local terminal
+- optional: Docker / Docker Compose for container deployment
+
+### Install dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+If you are working in an air-gapped environment, the repo also includes a wheels/ directory pattern for offline installation.
+
+### Create the first administrator
+
+On the first run, create the admin account explicitly:
+
+```bash
+python tasks.py admin
+```
+
+This stores the password as a secure local credential rather than shipping any default credential in the repository.
+
+---
+
+## 11. Application and API
+
+The backend is served by FastAPI and exposes routes for:
+
+- health and provenance checks
+- windows and batch history
+- result payloads
+- events and alerts
+- lead retrieval and filtering
+- authentication and session management
+- upload and reporting actions
+
+The application is intentionally served from a single process instead of splitting API and UI into separate services. This reduces deployment complexity and is better aligned with a local evidence workstation.
+
+### Main URLs
+
+Once running:
+
+- Sign-in: http://localhost:8000/sign-in.html
+- Dashboard / workstation: http://localhost:8000/app.html
+- API docs: http://localhost:8000/docs
+
+The project disables the public OpenAPI docs endpoint for security reasons, so the app is intentionally constrained in a way that matches the air-gapped deployment model.
+
+---
+
+## 12. Security and access model
+
+The application includes a controlled authentication and authorization model.
+
+Key security properties:
+
+- no default shipped admin password
+- local password entry rather than committed credentials
+- server-side sessions
+- CSRF protection on write routes
+- role-based capability checks for actions
+- lockout behaviour after repeated failed login attempts
+- reset token system for recovery without external identity infrastructure
+
+This is crucial because the system is meant to operate in a secure environment where a user account is an operational control, not a convenience feature.
+
+---
+
+## 13. Offline and compliance constraints
+
+NETRA is designed to remain usable when the machine is disconnected from the internet.
+
+The repository includes an offline validation path:
+
+```bash
+python tasks.py offline
+```
+
+This check is intended to confirm that the shipped files do not include external references or network-dependent assets. In a security-sensitive or air-gapped environment, this is a project requirement rather than an optional extra.
+
+---
+
+## 14. Validation and testing
+
+The project is accompanied by a meaningful test suite and validation workflow.
+
+### Included checks
+
+- contract validation against the payload schema
+- authentication and authorization tests
+- state and audit integrity tests
+- ingestion quality tests
+- end-to-end smoke tests covering generation, training, replay, and API checks
+
+Typical validation commands:
+
+```bash
+python tasks.py smoke
+python tasks.py test
+```
+
+The smoke workflow validates the project along the same stages a clean checkout would use: generate data, train, replay, validate contract, and exercise API behaviour.
+
+---
+
+## 15. Deployment notes
+
+### Local workstation
+
+This project is best understood as a single-host investigation workstation. It is designed to be run locally and managed by the operator, not exposed as a multi-user public service.
+
+### Docker deployment
+
+The repository includes Docker support for a containerised deployment path, but the product logic remains rooted in the same local-first design decisions.
+
+---
+
+## 16. Project status
+
+NETRA is implemented as a complete product-level investigation platform with these core capabilities:
+
+- ingestion and quality reporting
+- identity and graph-based resolution
+- feature engineering and risk scoring
+- anomaly detection
+- model training and challenger model workflow
+- role-based authentication
+- secure local state management
+- analyst-friendly web interface
+- report generation and evidence export
+
+The repository is structured as a real engineering build rather than a mock prototype, and the workflow is designed to support evaluation with real capture files, not just bundled demo data.
+
+---
+
+## 17. Recommended first run
+
+For a fresh setup, use:
+
+```bash
+pip install -r requirements.txt
+python tasks.py admin
+python tasks.py serve 8000
+```
+
+Or simply:
+
+```bash
+./run.sh
+```
+
+This is the intended path for a clean start on a local machine.
+
+---
+
+## 18. Summary
+
+NETRA is a decision-support workstation for fraud, AML, and cybercrime investigation teams operating in data-constrained or offline environments. It combines structured ingestion, graph analysis, explainable risk scoring, and secure local review workflows into a single operational product.
+
+The project is intentionally designed around a core principle: an investigator should be able to trust the system enough to act on the result, because every lead is explainable, every score is tied to evidence, and every output is grounded in a reviewable record.
